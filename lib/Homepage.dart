@@ -9,6 +9,16 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
+  final List<String> courses = ["อัลกอริทึม", "โครงสร้างข้อมูล"];
+  final List<String> coursesid = ["CS201 • 8/12 บท", "CS102 • 3/10 บท"];
+  final List<String> icons = ["🧮", "📊"];
+  final List<double> progress = [8/12, 3/10]; // คำนวณเป็น progress percentage
+
+  //finishcourse
+  final List<String> finishcourses = ["ฐานข้อมูล", "ระบบปฏิบัติการ"];
+  final List<String> finishcoursespoint = ["3", "3"];
+  final List<String> finishicons = ["💾", "🖥️"];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -147,7 +157,7 @@ class _HomepageState extends State<Homepage> {
             ],),
           ),
 
-          //course
+          //course preview - "เรียนต่อ" section
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 30.0),
             child: Row(
@@ -170,9 +180,128 @@ class _HomepageState extends State<Homepage> {
                 ),
               ],
             ),
-          )
+          ),
+
+          //course list
+            Expanded(
+              child: ListView.builder(
+                itemCount: courses.length,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => Coursepage()));
+                    },
+                    child: Container(
+                      margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Text(icons[index], style: TextStyle(fontSize: 32)),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(courses[index], style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                  Text(coursesid[index], style: TextStyle(fontSize: 14, color: Colors.grey)),
+                                ],
+                              ),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => Coursepage()));
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blueAccent,
+                                padding: EdgeInsets.all(10),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 4,
+                              ),
+                              child: Icon(Icons.play_arrow_outlined, color: Colors.white, size: 22),
+                            ),
+                          ],),
+                          SizedBox(height: 12),
+                          Text("เรียนต่อจากบทที่แล้ว", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: progress[index],
+                              minHeight: 6,
+                              backgroundColor: Colors.grey[300],
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text("${(progress[index] * 100).toStringAsFixed(0)}% เสร็จสิ้น", 
+                            style: TextStyle(fontSize: 12, color: Colors.blueAccent, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            //finish corse list
+              Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 30.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("เรียนจบแล้ว ✅", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 16),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: finishcourses.length,
+                    itemBuilder: (context, index) {
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => Coursepage()));
+                        },
+                        child: Container(
+                          margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Text(finishicons[index], style: TextStyle(fontSize: 32)),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(finishcourses[index], style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                    Text("เรียนจบแล้ว ${finishcoursespoint[index]} หน่วยกิจ", style: TextStyle(fontSize: 14, color: Colors.green)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            )
+
+            
         ],
-      )
+      ),
     );
   }
 }
