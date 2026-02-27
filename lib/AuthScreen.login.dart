@@ -1,3 +1,4 @@
+import 'package:app/Homepage.dart';
 import 'package:flutter/material.dart';
 
 class AuthScreenLogin extends StatelessWidget {
@@ -114,7 +115,9 @@ class AuthScreenLogin extends StatelessWidget {
                         ),
                       ),
                     ),
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => Homepage()));
+                    },
                     child: Text("Confirm"),
                   ),
                 ],
