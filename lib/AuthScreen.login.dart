@@ -168,6 +168,7 @@ class _AuthScreenLoginState extends State<AuthScreenLogin> {
         ),
         Align(alignment: Alignment.centerLeft, child: Text("password")),
         TextField(
+          controller: passwordController,
           obscureText: true,
           decoration: InputDecoration(
             hintText: "********",
