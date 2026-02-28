@@ -12,9 +12,8 @@ class _CoursepageState extends State<Coursepage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: const Center(
-        child: Text("Course Page"),
-      ),
+      appBar: AppBar(),
+      body: const Center(child: Text("Course Page")),
       bottomNavigationBar: Container(
         height: 60,
         padding: EdgeInsets.all(10),
@@ -24,13 +23,19 @@ class _CoursepageState extends State<Coursepage> {
             IconButton(
               icon: Icon(Icons.home_outlined),
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => Homepage()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Homepage()),
+                );
               },
             ),
             IconButton(
               icon: Icon(Icons.book_outlined),
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => Coursepage()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Coursepage()),
+                );
               },
             ),
           ],
