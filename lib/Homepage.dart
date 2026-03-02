@@ -217,7 +217,7 @@ class _HomepageState extends State<Homepage> {
             ),
           ),
 
-          //course
+          //course preview - "เรียนต่อ" section
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16.0),
             child: Row(
