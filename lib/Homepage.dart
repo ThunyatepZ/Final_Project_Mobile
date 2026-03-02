@@ -1,6 +1,9 @@
 import 'package:app/AuthScreen.login.dart';
 import 'package:app/Course.dart';
 import 'package:flutter/material.dart';
+import 'package:app/course.product.dart';
+import 'package:app/component_/buttom_nav.dart';
+import 'package:app/Profile.page.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -10,11 +13,15 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
+  final courseProduct = CourseProduct();
+  int currentIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+      bottomNavigationBar: CustomBottomNavBar(currentIndex: 0),
       backgroundColor: const Color.fromARGB(255, 255, 252, 252),
-      appBar: AppBar(backgroundColor: const Color.fromARGB(255, 255, 252, 252)),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
@@ -170,7 +177,7 @@ class _HomepageState extends State<Homepage> {
                       Column(
                         children: [
                           Text(
-                            "Learning Path",
+                            "Learnify",
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -250,14 +257,47 @@ class _HomepageState extends State<Homepage> {
               ],
             ),
           ),
-          ElevatedButton(
-            onPressed: () => {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => AuthScreenLogin()),
-              ),
-            },
-            child: Text("Course"),
+
+          // ElevatedButton(
+          //   onPressed: () => {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(builder: (context) => AuthScreenLogin()),
+          //     ),
+          //   },
+          //   child: Text("Course"),
+          // ),
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              itemCount: courseProduct.cousrsProduct.length,
+              itemBuilder: (context, index) {
+                return Container(
+                  margin: EdgeInsets.symmetric(vertical: 5),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 5,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    title: Text(
+                      "Course ${courseProduct.cousrsProduct[index].courseName}",
+                    ),
+                    subtitle: Text(
+                      "${courseProduct.cousrsProduct[index].courseID} * ${courseProduct.cousrsProduct[index].courseProgress}",
+                    ),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                    leading: Icon(Icons.book),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
