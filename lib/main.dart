@@ -1,5 +1,8 @@
 import 'package:app/AuthScreen.login.dart';
+import 'package:app/Homepage.dart';
 import 'package:flutter/material.dart';
+import 'package:app/Profile.page.dart';
+import 'Course.dart';
 
 class MyWidget extends StatelessWidget {
   const MyWidget({super.key});
@@ -8,7 +11,12 @@ class MyWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       initialRoute: "/auth",
-      routes: {"/auth": (context) => const AuthScreenLogin()},
+      routes: {
+        "/auth": (context) => const AuthScreenLogin(),
+        "/profile": (context) => const ProfilePage(),
+        "/home": (context) => const Homepage(),
+        "/course": (context) => const Coursepage(),
+      },
     );
   }
 }
