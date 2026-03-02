@@ -10,6 +10,16 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
+  final List<String> courses = ["อัลกอริทึม", "โครงสร้างข้อมูล"];
+  final List<String> coursesid = ["CS201 • 8/12 บท", "CS102 • 3/10 บท"];
+  final List<String> icons = ["🧮", "📊"];
+  final List<double> progress = [8/12, 3/10]; // คำนวณเป็น progress percentage
+
+  //finishcourse
+  final List<String> finishcourses = ["ฐานข้อมูล", "ระบบปฏิบัติการ"];
+  final List<String> finishcoursespoint = ["3", "3"];
+  final List<String> finishicons = ["💾", "🖥️"];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -210,7 +220,7 @@ class _HomepageState extends State<Homepage> {
             ),
           ),
 
-          //course
+          //course preview - "เรียนต่อ" section
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16.0),
             child: Row(

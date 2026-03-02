@@ -9,6 +9,11 @@ class Coursepage extends StatefulWidget {
 }
 
 class _CoursepageState extends State<Coursepage> {
+  final List<String> courses = ["อัลกอริทึม", "โครงสร้างข้อมูล", "ฐานข้อมูล", "ระบบปฏิบัติการ"];
+  final List<String> coursesid = ["CS201 • Algorithms", "CS102 • Data Structures", "CS301 • Database Systems", "CS302 • Operating Systems"];
+  final List<String> decription = ["เรียนรู้ Search, Sort, Recursion และ Dynamic Programming","Array, Linked List, Stack, Queue, Tree, Graph","SQL, Normalization, Indexing, Transaction","Process, Thread, Memory Management, File System"];
+  final List<String> icons = ["🧮", "📊", "💾", "🖥️"];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
