@@ -10,8 +10,6 @@ class CustomBottomNavBar extends StatelessWidget {
     return BottomNavigationBar(
       currentIndex: currentIndex,
       type: BottomNavigationBarType.fixed,
-      selectedItemColor: Colors.blueAccent,
-      unselectedItemColor: Colors.grey,
       onTap: (index) {
         if (index == currentIndex) return; // 👈 กันกดซ้ำ
 
