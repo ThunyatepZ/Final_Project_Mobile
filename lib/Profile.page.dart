@@ -58,16 +58,18 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4.0),
+        title: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
           child: Text(
             "โปรไฟล์",
             style: TextStyle(
-              color: Color(0xFF1E293B),
+              color:
+                  Theme.of(context).textTheme.titleLarge?.color ??
+                  Theme.of(context).colorScheme.onBackground,
               fontSize: 28,
               fontWeight: FontWeight.bold,
             ),
@@ -131,10 +133,10 @@ class _ProfilePageState extends State<ProfilePage> {
                               (isLoadingProfile
                                   ? "กำลังโหลด..."
                                   : "ไม่ทราบชื่อ"),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E293B),
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -143,9 +145,11 @@ class _ProfilePageState extends State<ProfilePage> {
                               (isLoadingProfile
                                   ? "กำลังโหลด..."
                                   : "ไม่ทราบอีเมล"),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF64748B),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.6),
                           ),
                         ),
                       ],
@@ -157,14 +161,14 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 20),
 
             // History Section
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 "วิชาเรียนที่สนใจ",
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
+                  color: Theme.of(context).colorScheme.onBackground,
                 ),
               ),
             ),
@@ -176,11 +180,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Theme.of(context).shadowColor.withOpacity(0.04),
                       blurRadius: 15,
                       offset: const Offset(0, 4),
                     ),
@@ -198,11 +202,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Theme.of(context).shadowColor.withOpacity(0.04),
                         blurRadius: 15,
                         offset: const Offset(0, 4),
                       ),
@@ -230,18 +234,20 @@ class _ProfilePageState extends State<ProfilePage> {
                           children: [
                             Text(
                               course['courseName'] ?? "ไม่ทราบชื่อวิชา",
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF1E293B),
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               course['courseID'] ?? "-",
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
-                                color: Color(0xFF64748B),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.6),
                               ),
                             ),
                           ],
@@ -256,11 +262,11 @@ class _ProfilePageState extends State<ProfilePage> {
             // Menu List
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Theme.of(context).shadowColor.withOpacity(0.04),
                     blurRadius: 15,
                     offset: const Offset(0, 4),
                   ),
@@ -273,6 +279,12 @@ class _ProfilePageState extends State<ProfilePage> {
                     "การแจ้งเตือน",
                     true,
                     () => _showSnackBar("ตั้งค่าการแจ้งเตือน (เร็วๆ นี้)"),
+                  ),
+                  _buildMenuItem(
+                    Icons.palette_outlined,
+                    "ธีมและรูปลักษณ์",
+                    true,
+                    () => Navigator.pushNamed(context, "/theme"),
                   ),
                   _buildMenuItem(
                     Icons.shield_outlined,
@@ -352,22 +364,28 @@ class _ProfilePageState extends State<ProfilePage> {
             horizontal: 20,
             vertical: 2,
           ),
-          leading: Icon(icon, color: const Color(0xFF475569)),
+          leading: Icon(
+            icon,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+          ),
           title: Text(
             title,
-            style: const TextStyle(fontSize: 16, color: Color(0xFF1E293B)),
+            style: TextStyle(
+              fontSize: 16,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
-          trailing: const Icon(
+          trailing: Icon(
             Icons.chevron_right_rounded,
-            color: Color(0xFF94A3B8),
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
           ),
           onTap: onTap,
         ),
         if (showDivider)
-          const Divider(
+          Divider(
             height: 1,
             thickness: 1,
-            color: Color(0xFFF1F5F9),
+            color: Theme.of(context).dividerColor,
             indent: 20,
             endIndent: 20,
           ),
