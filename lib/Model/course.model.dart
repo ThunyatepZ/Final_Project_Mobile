@@ -1,4 +1,5 @@
 class CourseModel {
+  String id;
   String courseName;
   String courseID;
   String courseNameEn;
@@ -8,6 +9,7 @@ class CourseModel {
   List<String> topics;
 
   CourseModel({
+    this.id = "",
     required this.courseName,
     required this.courseID,
     this.courseNameEn = "",
@@ -16,4 +18,17 @@ class CourseModel {
     this.imageUrl = "",
     this.topics = const [],
   });
+
+  factory CourseModel.fromJson(Map<String, dynamic> json) {
+    return CourseModel(
+      id: json['id'] ?? '',
+      courseID: json['courseID'] ?? '',
+      courseName: json['courseName'] ?? '',
+      courseNameEn: json['courseNameEn'] ?? '',
+      credits: json['credits'] ?? '3',
+      description: json['description'] ?? '',
+      imageUrl: json['imageUrl'] ?? '',
+      topics: json['topics'] != null ? List<String>.from(json['topics']) : [],
+    );
+  }
 }

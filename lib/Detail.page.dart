@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:app/Model/course.model.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
 class DetailPage extends StatefulWidget {
   final CourseModel course;
@@ -11,6 +15,119 @@ class DetailPage extends StatefulWidget {
 }
 
 class _DetailPageState extends State<DetailPage> {
+  final storage = const FlutterSecureStorage();
+  bool isEnrolling = false;
+  bool isEnrolled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkEnrollmentStatus();
+  }
+
+  Future<void> _checkEnrollmentStatus() async {
+    try {
+      final token = await storage.read(key: 'jwt_token');
+      if (token == null) return;
+
+      final url = Platform.isAndroid
+          ? 'http://10.0.2.2:8000'
+          : 'http://127.0.0.1:8000';
+      final res = await http.get(
+        Uri.parse('$url/api/v1/auth/history'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['status'] == 'success') {
+          final List history = data['history'] ?? [];
+          // Check by courseID or id (uuid)
+          final found = history.any(
+            (item) =>
+                item['courseID'] == widget.course.courseID ||
+                item['course_id'] == widget.course.id,
+          );
+          if (mounted) {
+            setState(() {
+              isEnrolled = found;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error checking enrollment status: $e");
+    }
+  }
+
+  Future<void> _enrollCourse() async {
+    setState(() => isEnrolling = true);
+    try {
+      final token = await storage.read(key: 'jwt_token');
+      if (token == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('กรุณาเข้าสู่ระบบก่อน')));
+        setState(() => isEnrolling = false);
+        return;
+      }
+
+      final url = Platform.isAndroid
+          ? 'http://10.0.2.2:8000'
+          : 'http://127.0.0.1:8000';
+      final res = await http.post(
+        Uri.parse('$url/api/v1/courses/enroll'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'course_id': widget.course.id.isNotEmpty
+              ? widget.course.id
+              : widget.course.courseID,
+        }),
+      );
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200 && data['status'] == 'success') {
+        if (!mounted) return;
+        setState(() {
+          isEnrolled = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              data['message'] == 'Already enrolled'
+                  ? 'คุณลงทะเบียนวิชานี้ไปแล้ว'
+                  : 'ลงทะเบียนสำเร็จ!',
+            ),
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        String errMsg = 'ไม่ทราบสาเหตุ';
+        if (data is Map) {
+          if (data.containsKey('message') && data['message'] != null) {
+            errMsg = data['message'];
+          } else if (data.containsKey('detail') && data['detail'] != null) {
+            errMsg = data['detail'].toString();
+          }
+        }
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $errMsg')));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => isEnrolling = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final course = widget.course;
@@ -199,11 +316,13 @@ class _DetailPageState extends State<DetailPage> {
                               ),
                             ),
                             const SizedBox(width: 14),
-                            Text(
-                              topic,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
+                            Expanded(
+                              child: Text(
+                                topic,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
@@ -217,6 +336,51 @@ class _DetailPageState extends State<DetailPage> {
               ),
             ),
           ],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: ElevatedButton(
+          onPressed: isEnrolling
+              ? null
+              : (isEnrolled
+                    ? () => Navigator.pushNamed(context, "/QA")
+                    : _enrollCourse),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF00B4FF),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 0,
+          ),
+          child: isEnrolling
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Text(
+                  isEnrolled ? "ทำแบบทดสอบ" : "ลงทะเบียนเรียน",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
         ),
       ),
     );

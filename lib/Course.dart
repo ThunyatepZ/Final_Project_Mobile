@@ -1,8 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:app/component_/buttom_nav.dart';
 import 'package:app/Detail.page.dart';
 import 'package:app/Model/course.model.dart';
 import 'package:flutter/material.dart';
-import 'package:app/products/course.product.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
 class Coursepage extends StatefulWidget {
   const Coursepage({super.key});
@@ -12,8 +16,49 @@ class Coursepage extends StatefulWidget {
 }
 
 class _CoursepageState extends State<Coursepage> {
-  final product = CourseProduct();
+  List<CourseModel> courses = [];
+  bool isLoading = true;
+  final storage = const FlutterSecureStorage();
   String selectedFilter = "ทั้งหมด";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCourses();
+  }
+
+  Future<void> _fetchCourses() async {
+    try {
+      final token = await storage.read(key: 'jwt_token');
+      final url = Platform.isAndroid
+          ? 'http://10.0.2.2:8000'
+          : 'http://127.0.0.1:8000';
+
+      final res = await http.get(
+        Uri.parse('$url/api/v1/courses'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['status'] == 'success') {
+          if (mounted) {
+            setState(() {
+              courses = (data['courses'] as List)
+                  .map((e) => CourseModel.fromJson(e))
+                  .toList();
+              isLoading = false;
+            });
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching courses: $e");
+    }
+
+    if (mounted) setState(() => isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,19 +117,28 @@ class _CoursepageState extends State<Coursepage> {
 
               // Course List
               Expanded(
-                child: ListView.builder(
-                  itemCount: product.cousrsProduct.length,
-                  itemBuilder: (context, index) {
-                    final course = product.cousrsProduct[index];
-                    return _buildCourseCard(course);
-                  },
-                ),
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : courses.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "ไม่มีวิชาในระบบ",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: courses.length,
+                        itemBuilder: (context, index) {
+                          final course = courses[index];
+                          return _buildCourseCard(course);
+                        },
+                      ),
               ),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: CustomBottomNavBar(currentIndex: 1),
+      bottomNavigationBar: CustomBottomNavBar(currentIndex: 0),
     );
   }
 
@@ -169,29 +223,60 @@ class _CoursepageState extends State<Coursepage> {
           ),
           const SizedBox(height: 12),
           // Topics as chips
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: course.topics.map((topic) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF00B4FF).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  topic,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF0091D5),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              );
-            }).toList(),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(
+                course.topics.length > 3 ? 4 : course.topics.length,
+                (index) {
+                  // สร้างกล่องตัวเลขหัวข้อที่เหลือ (+X) ถ้ามีเกิน 3
+                  if (index == 3) {
+                    return Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        "+${course.topics.length - 3}",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  }
+
+                  // สร้างหัวข้อปกติ
+                  return Container(
+                    margin: const EdgeInsets.only(
+                      right: 8,
+                    ), // เว้นระยะห่างด้านขวาเสมอ
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00B4FF).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      course.topics[index],
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF0091D5),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
           const SizedBox(height: 14),
           // ปุ่มดูรายละเอียด

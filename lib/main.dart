@@ -1,5 +1,4 @@
 import 'package:app/AuthScreen.login.dart';
-import 'package:app/Homepage.dart';
 import 'package:app/QA.page.dart';
 import 'package:flutter/material.dart';
 import 'package:app/Profile.page.dart';
@@ -15,7 +14,6 @@ class MyWidget extends StatelessWidget {
       routes: {
         "/auth": (context) => const AuthScreenLogin(),
         "/profile": (context) => const ProfilePage(),
-        "/home": (context) => const Homepage(),
         "/course": (context) => const Coursepage(),
         "/QA": (context) => const QApage(),
       },
