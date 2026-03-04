@@ -1,7 +1,8 @@
 import 'package:app/AuthScreen.login.dart';
 import 'package:app/Course.dart';
+import 'package:app/Detail.page.dart';
 import 'package:flutter/material.dart';
-import 'package:app/course.product.dart';
+import 'package:app/products/course.product.dart';
 import 'package:app/component_/buttom_nav.dart';
 import 'package:app/Profile.page.dart';
 
@@ -183,13 +184,6 @@ class _HomepageState extends State<Homepage> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Text(
-                            "เรียนไปแล้ว 1/3 วิชา",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: const Color.fromARGB(255, 128, 128, 128),
-                            ),
-                          ),
                         ],
                       ),
                       Container(
@@ -257,16 +251,6 @@ class _HomepageState extends State<Homepage> {
               ],
             ),
           ),
-
-          // ElevatedButton(
-          //   onPressed: () => {
-          //     Navigator.push(
-          //       context,
-          //       MaterialPageRoute(builder: (context) => AuthScreenLogin()),
-          //     ),
-          //   },
-          //   child: Text("Course"),
-          // ),
           Expanded(
             child: ListView.builder(
               padding: EdgeInsets.symmetric(horizontal: 20),
@@ -286,11 +270,21 @@ class _HomepageState extends State<Homepage> {
                     ],
                   ),
                   child: ListTile(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DetailPage(
+                            course: courseProduct.cousrsProduct[index],
+                          ),
+                        ),
+                      );
+                    },
                     title: Text(
                       "Course ${courseProduct.cousrsProduct[index].courseName}",
                     ),
                     subtitle: Text(
-                      "${courseProduct.cousrsProduct[index].courseID} * ${courseProduct.cousrsProduct[index].courseProgress}",
+                      "${courseProduct.cousrsProduct[index].courseID}",
                     ),
                     trailing: Icon(Icons.arrow_forward_ios, size: 16),
                     leading: Icon(Icons.book),

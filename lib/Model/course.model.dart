@@ -1,21 +1,19 @@
 class CourseModel {
   String courseName;
   String courseID;
-  String courseProgress;
-  String difficulty;
+  String courseNameEn;
   String credits;
   String description;
-  List<String> tags;
-  double progressValue;
+  String imageUrl;
+  List<String> topics;
 
   CourseModel({
     required this.courseName,
     required this.courseID,
-    required this.courseProgress,
-    this.difficulty = "ปานกลาง",
+    this.courseNameEn = "",
     this.credits = "3",
     this.description = "",
-    this.tags = const [],
-    this.progressValue = 0.0,
+    this.imageUrl = "",
+    this.topics = const [],
   });
 }

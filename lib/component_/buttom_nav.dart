@@ -21,6 +21,9 @@ class CustomBottomNavBar extends StatelessWidget {
         if (index == 1) {
           Navigator.pushReplacementNamed(context, "/course");
         }
+        if (index == 2) {
+          Navigator.pushReplacementNamed(context, "/QA");
+        }
         if (index == 3) {
           Navigator.pushReplacementNamed(context, "/profile");
         }
@@ -35,8 +38,8 @@ class CustomBottomNavBar extends StatelessWidget {
           label: "วิชาเรียน",
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.emoji_events_outlined),
-          label: "ผลคะแนน",
+          icon: Icon(Icons.question_mark_outlined),
+          label: "QA",
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.person_outline),
