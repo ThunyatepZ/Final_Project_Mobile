@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:app/component_/buttom_nav.dart';
 import 'package:flutter/material.dart';
-import 'package:app/component_/theme.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -10,265 +14,382 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  final storage = const FlutterSecureStorage();
+  String? username;
+  String? email;
+  bool isLoadingProfile = true;
+  List<dynamic> historyCourses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserProfile();
+  }
+
+  Future<void> _fetchUserProfile() async {
+    final token = await storage.read(key: 'jwt_token');
+    final url = Platform.isAndroid
+        ? 'http://10.0.2.2:8000'
+        : 'http://127.0.0.1:8000';
+
+    final res = await http.get(
+      Uri.parse('$url/api/v1/auth/me'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    final historyRes = await http.get(
+      Uri.parse('$url/api/v1/auth/history'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    setState(() {
+      username = jsonDecode(res.body)['username'];
+      email = jsonDecode(res.body)['email'];
+
+      final historyData = jsonDecode(historyRes.body);
+      if (historyData['status'] == 'success') {
+        historyCourses = historyData['history'] ?? [];
+      }
+
+      isLoadingProfile = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
-      bottomNavigationBar: CustomBottomNavBar(currentIndex: 3),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: Text(
+            "โปรไฟล์",
+            style: TextStyle(
+              color:
+                  Theme.of(context).textTheme.titleLarge?.color ??
+                  Theme.of(context).colorScheme.onBackground,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        centerTitle: false,
+      ),
+      bottomNavigationBar: CustomBottomNavBar(currentIndex: 2),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
+            // Profile Card
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 15,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF00A2FF), Color(0xFF02BBFF)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    alignment: Alignment.center,
+                    child: isLoadingProfile
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            username != null && username!.isNotEmpty
+                                ? username![0].toUpperCase()
+                                : "U",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          username ??
+                              (isLoadingProfile
+                                  ? "กำลังโหลด..."
+                                  : "ไม่ทราบชื่อ"),
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          email ??
+                              (isLoadingProfile
+                                  ? "กำลังโหลด..."
+                                  : "ไม่ทราบอีเมล"),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.only(left: 20),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "โปรไฟล์",
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+
+            // History Section
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "วิชาเรียนที่สนใจ",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onBackground,
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-            Container(
-              //profile card
-              margin: const EdgeInsets.all(20),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).shadowColor.withOpacity(0.3),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              //profile pic
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundImage: NetworkImage(
-                      "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+            const SizedBox(height: 12),
+            if (isLoadingProfile)
+              const CircularProgressIndicator()
+            else if (historyCourses.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).shadowColor.withOpacity(0.04),
+                      blurRadius: 15,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 10),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "ชื่อ นามสกุล",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          const Text(
-                            "อีเมล@gmail.com",
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            //end profile card
-
-            //statistic card
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  //Xp รวม
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 10),
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(context).shadowColor.withOpacity(0.3),
-                            spreadRadius: 2,
-                            blurRadius: 5,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-
-                      //data XP รวม
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Text(
-                            "2450",
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blueAccent,
-                            ),
-                          ),
-                          SizedBox(height: 5),
-                          Text(
-                            "XP รวม",
-                            style: TextStyle(fontSize: 13, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  //strak
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 10),
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(context).shadowColor.withOpacity(0.3),
-                            spreadRadius: 2,
-                            blurRadius: 5,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      //data Streak รวม
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Text(
-                            "7",
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orangeAccent,
-                            ),
-                          ),
-                          SizedBox(height: 5),
-                          Text(
-                            "Streak รวม",
-                            style: TextStyle(fontSize: 13, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  //วิชา
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 10),
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(context).shadowColor.withOpacity(0.3),
-                            spreadRadius: 2,
-                            blurRadius: 5,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      //data วิชา รวม
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Text(
-                            "3",
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green
-                            ),
-                          ),
-                          SizedBox(height: 5),
-                          Text(
-                            "วิชาเรียน",
-                            style: TextStyle(fontSize: 13, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            //end static card
-
-            //list view setting
-            Column(
-              children: [
-                Container(
-                  margin: EdgeInsets.all(25),
-                  padding: EdgeInsets.all(3),
+                  ],
+                ),
+                child: const Text(
+                  "ยังไม่มีวิชาเรียนที่สนใจ",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+              )
+            else
+              ...historyCourses.map((course) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Theme.of(context).shadowColor.withOpacity(0.3),
-                        spreadRadius: 2,
-                        blurRadius: 5,
-                        offset: const Offset(0, 3),
+                        color: Theme.of(context).shadowColor.withOpacity(0.04),
+                        blurRadius: 15,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-
-                  //listview setting
-                  child: Column(
+                  child: Row(
                     children: [
-                      ListTile(
-                        leading: Icon(Icons.notifications_outlined, color: Colors.grey),
-                        title: Text("การแจ้งเตือน", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
-                        trailing: Icon(Icons.arrow_forward_ios_outlined, size: 16),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00B4FF).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.menu_book_rounded,
+                          color: Color(0xFF00B4FF),
+                          size: 20,
+                        ),
                       ),
-                      Divider(color: Theme.of(context).dividerColor),
-                      ListTile(
-                        leading: Icon(Icons.privacy_tip_outlined, color: Colors.grey),
-                        title: Text("ความเป็นส่วนตัว", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
-                        trailing: Icon(Icons.arrow_forward_ios_outlined, size: 16),
-                      ),
-                      Divider(color: Theme.of(context).dividerColor),
-                      ListTile(
-                        leading: Icon(Icons.dark_mode_outlined, color: Colors.grey),
-                        title: Text("ธีม", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
-                        trailing: Icon(Icons.arrow_forward_ios_outlined, size: 16),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => Themepage())),
-                      ),
-                      Divider(color: Theme.of(context).dividerColor),
-                      ListTile(
-                        leading: Icon(Icons.info_outline, color: Colors.grey),
-                        title: Text("ช่วยเหลือ", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
-                        trailing: Icon(Icons.arrow_forward_ios_outlined, size: 16),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              course['courseName'] ?? "ไม่ทราบชื่อวิชา",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              course['courseID'] ?? "-",
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.6),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                )
-              ],
+                );
+              }),
+            const SizedBox(height: 12),
+
+            // Menu List
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context).shadowColor.withOpacity(0.04),
+                    blurRadius: 15,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  _buildMenuItem(
+                    Icons.notifications_none_rounded,
+                    "การแจ้งเตือน",
+                    true,
+                    () => _showSnackBar("ตั้งค่าการแจ้งเตือน (เร็วๆ นี้)"),
+                  ),
+                  _buildMenuItem(
+                    Icons.palette_outlined,
+                    "ธีมและรูปลักษณ์",
+                    true,
+                    () => Navigator.pushNamed(context, "/theme"),
+                  ),
+                  _buildMenuItem(
+                    Icons.shield_outlined,
+                    "ความเป็นส่วนตัว",
+                    true,
+                    () => _showSnackBar("ตั้งค่าความเป็นส่วนตัว (เร็วๆ นี้)"),
+                  ),
+                  _buildMenuItem(
+                    Icons.help_outline_rounded,
+                    "ช่วยเหลือ",
+                    false,
+                    () => _showSnackBar("ศูนย์ช่วยเหลือ (เร็วๆ นี้)"),
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(height: 24),
+
+            // Logout Button
+            OutlinedButton(
+              onPressed: () {
+                Navigator.pushReplacementNamed(context, '/auth');
+                storage.delete(key: 'jwt_token');
+              },
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFFEF4444)),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                backgroundColor: const Color(0xFFFEF2F2),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.logout_rounded, color: Color(0xFFEF4444)),
+                  SizedBox(width: 8),
+                  Text(
+                    "ออกจากระบบ",
+                    style: TextStyle(
+                      color: Color(0xFFEF4444),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
           ],
         ),
       ),
+    );
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(
+    IconData icon,
+    String title,
+    bool showDivider,
+    VoidCallback onTap,
+  ) {
+    return Column(
+      children: [
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 2,
+          ),
+          leading: Icon(
+            icon,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+          ),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          trailing: Icon(
+            Icons.chevron_right_rounded,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+          ),
+          onTap: onTap,
+        ),
+        if (showDivider)
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: Theme.of(context).dividerColor,
+            indent: 20,
+            endIndent: 20,
+          ),
+      ],
     );
   }
 }

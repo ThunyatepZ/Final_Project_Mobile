@@ -1,7 +1,12 @@
-import 'package:app/Homepage.dart';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:app/component_/buttom_nav.dart';
+import 'package:app/Detail.page.dart';
+import 'package:app/Model/course.model.dart';
 import 'package:flutter/material.dart';
-import 'package:app/course.product.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
 class Coursepage extends StatefulWidget {
   const Coursepage({super.key});
@@ -11,8 +16,49 @@ class Coursepage extends StatefulWidget {
 }
 
 class _CoursepageState extends State<Coursepage> {
-  final product = CourseProduct();
+  List<CourseModel> courses = [];
+  bool isLoading = true;
+  final storage = const FlutterSecureStorage();
   String selectedFilter = "ทั้งหมด";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCourses();
+  }
+
+  Future<void> _fetchCourses() async {
+    try {
+      final token = await storage.read(key: 'jwt_token');
+      final url = Platform.isAndroid
+          ? 'http://10.0.2.2:8000'
+          : 'http://127.0.0.1:8000';
+
+      final res = await http.get(
+        Uri.parse('$url/api/v1/courses'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['status'] == 'success') {
+          if (mounted) {
+            setState(() {
+              courses = (data['courses'] as List)
+                  .map((e) => CourseModel.fromJson(e))
+                  .toList();
+              isLoading = false;
+            });
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching courses: $e");
+    }
+
+    if (mounted) setState(() => isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,159 +116,196 @@ class _CoursepageState extends State<Coursepage> {
 
               // Course List
               Expanded(
-                child: ListView.builder(
-                  itemCount: product.cousrsProduct.length,
-                  itemBuilder: (context, index) {
-                    final course = product.cousrsProduct[index];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        border: Border.all(color: Theme.of(context).dividerColor),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(context).shadowColor.withOpacity(0.02),
-                            spreadRadius: 0,
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : courses.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "ไม่มีวิชาในระบบ",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: courses.length,
+                        itemBuilder: (context, index) {
+                          final course = courses[index];
+                          return _buildCourseCard(course);
+                        },
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[100],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.menu_book,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          course.courseName,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                course.difficulty == "เบื้องต้น"
-                                                ? Colors.green.withOpacity(0.15)
-                                                : Colors.orange.withOpacity(
-                                                    0.15,
-                                                  ),
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            course.difficulty,
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              color:
-                                                  course.difficulty ==
-                                                      "เบื้องต้น"
-                                                  ? Colors.green[700]
-                                                  : Colors.orange[700],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      "${course.courseID} • ${course.credits} หน่วยกิต",
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            course.description,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: course.tags.map((tag) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  tag,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.blue[700],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 16),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: course.progressValue,
-                              backgroundColor: Colors.grey[200],
-                              color: course.difficulty == "เบื้องต้น"
-                                  ? Colors.green
-                                  : Colors.blue,
-                              minHeight: 6,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
               ),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: CustomBottomNavBar(currentIndex: 1),
+      bottomNavigationBar: CustomBottomNavBar(currentIndex: 0),
+    );
+  }
+
+  Widget _buildCourseCard(CourseModel course) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Course icon / image
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: course.imageUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.network(
+                          course.imageUrl,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.menu_book_rounded,
+                        color: Colors.grey,
+                        size: 28,
+                      ),
+              ),
+              const SizedBox(width: 12),
+              // Course info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      course.courseName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "${course.courseID} • ${course.courseNameEn}",
+                      style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "${course.credits} หน่วยกิต",
+                      style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Description
+          Text(
+            course.description,
+            style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+          ),
+          const SizedBox(height: 12),
+          // Topics as chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(
+                course.topics.length > 3 ? 4 : course.topics.length,
+                (index) {
+                  // สร้างกล่องตัวเลขหัวข้อที่เหลือ (+X) ถ้ามีเกิน 3
+                  if (index == 3) {
+                    return Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        "+${course.topics.length - 3}",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  }
+
+                  // สร้างหัวข้อปกติ
+                  return Container(
+                    margin: const EdgeInsets.only(
+                      right: 8,
+                    ), // เว้นระยะห่างด้านขวาเสมอ
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00B4FF).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      course.topics[index],
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF0091D5),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          // ปุ่มดูรายละเอียด
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DetailPage(course: course),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00B4FF),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: const Text(
+                "ดูรายละเอียด",
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -237,9 +320,7 @@ class _CoursepageState extends State<Coursepage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF00B4FF)
-              : Colors.grey[200], // Match the bright blue color roughly
+          color: isSelected ? const Color(0xFF00B4FF) : Colors.grey[200],
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
