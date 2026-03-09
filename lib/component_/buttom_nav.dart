@@ -14,23 +14,30 @@ class CustomBottomNavBar extends StatelessWidget {
         if (index == currentIndex) return; // 👈 กันกดซ้ำ
 
         if (index == 0) {
-          Navigator.pushReplacementNamed(context, "/course");
+          Navigator.pushReplacementNamed(context, "/learning-path");
         }
         if (index == 1) {
-          Navigator.pushReplacementNamed(context, "/QA");
+          Navigator.pushReplacementNamed(context, "/course");
         }
         if (index == 2) {
+          Navigator.pushReplacementNamed(context, "/QA");
+        }
+        if (index == 3) {
           Navigator.pushReplacementNamed(context, "/profile");
         }
       },
       items: const [
         BottomNavigationBarItem(
+          icon: Icon(Icons.route_outlined),
+          label: "คอร์สเรียน",
+        ),
+        BottomNavigationBarItem(
           icon: Icon(Icons.menu_book_outlined),
-          label: "รายวิชา",
+          label: "คลังข้อสอบ",
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.chat_bubble_outline),
-          label: "ถาม AI",
+          label: "ผู้ช่วย",
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.person_outline),

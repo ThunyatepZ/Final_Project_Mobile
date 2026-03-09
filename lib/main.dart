@@ -3,7 +3,8 @@ import 'package:app/QA.page.dart';
 import 'package:flutter/material.dart';
 import 'package:app/Profile.page.dart';
 import 'Course.dart';
-import 'package:app/component_/theme.dart'; // for themeNotifier and Themepage
+import 'package:app/component_/theme.dart';
+import 'package:app/LearningPath.page.dart';
 
 class MyWidget extends StatelessWidget {
   const MyWidget({super.key});
@@ -49,10 +50,8 @@ class MyWidget extends StatelessWidget {
             colorScheme: const ColorScheme.dark(
               primary: Color(0xFF3B82F6),
               secondary: Color(0xFF60A5FA),
-              surface: Color(0xFF1E293B), // Card/Container background
-              background: Color(0xFF0F172A), // Scaffold background
-              onSurface: Color(0xFFF1F5F9), // Main text on cards
-              onBackground: Color(0xFFF8FAFC), // Main text on background
+              surface: Color(0xFF1E293B), // Scaffold background
+              onSurface: Color(0xFFF1F5F9), // Main text on background
             ),
             scaffoldBackgroundColor: const Color(0xFF0F172A),
             cardColor: const Color(0xFF1E293B),
@@ -76,8 +75,9 @@ class MyWidget extends StatelessWidget {
           routes: {
             "/auth": (context) => const AuthScreenLogin(),
             "/profile": (context) => const ProfilePage(),
+            "/learning-path": (context) => const LearningPathPage(),
             "/QA": (context) => const QApage(),
-            "/course": (context) => const Coursepage(),
+            "/course": (context) => const CoursePage(),
             "/theme": (context) => const Themepage(),
           },
         );
