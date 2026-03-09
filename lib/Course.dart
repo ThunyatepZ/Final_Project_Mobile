@@ -2,62 +2,84 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:app/component_/buttom_nav.dart';
-import 'package:app/Detail.page.dart';
-import 'package:app/Model/course.model.dart';
+import 'package:app/CreateQuiz.page.dart';
+import 'package:app/Model/quiz.model.dart';
+import 'package:app/QuizTaking.page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
-class Coursepage extends StatefulWidget {
-  const Coursepage({super.key});
+class CoursePage extends StatefulWidget {
+  const CoursePage({super.key});
 
   @override
-  State<Coursepage> createState() => _CoursepageState();
+  State<CoursePage> createState() => _CoursePageState();
 }
 
-class _CoursepageState extends State<Coursepage> {
-  List<CourseModel> courses = [];
-  bool isLoading = true;
-  final storage = const FlutterSecureStorage();
-  String selectedFilter = "ทั้งหมด";
+class _CoursePageState extends State<CoursePage> {
+  List<QuizModel> allQuizzes = [];
+  List<QuizModel> visibleQuizzes = [];
+  bool isPageLoading = true;
+  final secureStorage = const FlutterSecureStorage();
+  final TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _fetchCourses();
+    _loadQuizzes();
   }
 
-  Future<void> _fetchCourses() async {
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadQuizzes() async {
+    setState(() => isPageLoading = true);
     try {
-      final token = await storage.read(key: 'jwt_token');
-      final url = Platform.isAndroid
+      final token = await secureStorage.read(key: 'jwt_token');
+      final baseUrl = Platform.isAndroid
           ? 'http://10.0.2.2:8000'
           : 'http://127.0.0.1:8000';
 
-      final res = await http.get(
-        Uri.parse('$url/api/v1/courses'),
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/v1/quiz'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         if (data['status'] == 'success') {
           if (mounted) {
             setState(() {
-              courses = (data['courses'] as List)
-                  .map((e) => CourseModel.fromJson(e))
+              allQuizzes = (data['quizzes'] as List)
+                  .map((e) => QuizModel.fromJson(e))
                   .toList();
-              isLoading = false;
+              visibleQuizzes = List.from(allQuizzes);
+              isPageLoading = false;
             });
           }
           return;
         }
       }
     } catch (e) {
-      debugPrint("Error fetching courses: $e");
+      debugPrint("Error fetching quizzes: $e");
     }
 
-    if (mounted) setState(() => isLoading = false);
+    if (mounted) setState(() => isPageLoading = false);
+  }
+
+  void _applyQuizFilter(String query) {
+    setState(() {
+      visibleQuizzes = allQuizzes
+          .where(
+            (quiz) =>
+                quiz.title.toLowerCase().contains(query.toLowerCase()) ||
+                quiz.description.toLowerCase().contains(query.toLowerCase()),
+          )
+          .toList();
+    });
   }
 
   @override
@@ -70,13 +92,22 @@ class _CoursepageState extends State<Coursepage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
-              const Text(
-                "วิชาเรียน",
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "คลังฝึกหัด",
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    onPressed: _loadQuizzes,
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               const Text(
-                "หลักสูตรวิทยาการคอมพิวเตอร์",
+                "สร้างแบบฝึกหัดส่วนตัว",
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 20),
@@ -84,52 +115,55 @@ class _CoursepageState extends State<Coursepage> {
               // Search Bar
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade200),
                 ),
-                child: const TextField(
-                  decoration: InputDecoration(
-                    hintText: "ค้นหาวิชา...",
-                    hintStyle: TextStyle(color: Colors.grey),
-                    prefixIcon: Icon(Icons.search, color: Colors.grey),
+                child: TextField(
+                  controller: searchController,
+                  onChanged: _applyQuizFilter,
+                  decoration: const InputDecoration(
+                    hintText: "ค้นหาแนวข้อสอบ...",
+                    hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: Colors.blueAccent,
+                      size: 20,
+                    ),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 15),
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
 
-              // Filters
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildFilterChip("ทั้งหมด"),
-                    const SizedBox(width: 8),
-                    _buildFilterChip("ลงทะเบียน"),
-                    const SizedBox(width: 8),
-                    _buildFilterChip("เปิดให้เรียน"),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Course List
+              // Quiz List
               Expanded(
-                child: isLoading
+                child: isPageLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : courses.isEmpty
-                    ? const Center(
-                        child: Text(
-                          "ไม่มีวิชาในระบบ",
-                          style: TextStyle(color: Colors.grey),
+                    : allQuizzes.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.quiz_outlined,
+                              size: 80,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              "ยังไม่มีข้อสอบในคลัง",
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ],
                         ),
                       )
                     : ListView.builder(
-                        itemCount: courses.length,
+                        itemCount: visibleQuizzes.length,
                         itemBuilder: (context, index) {
-                          final course = courses[index];
-                          return _buildCourseCard(course);
+                          final quiz = visibleQuizzes[index];
+                          return _buildQuizCard(quiz);
                         },
                       ),
               ),
@@ -137,11 +171,23 @@ class _CoursepageState extends State<Coursepage> {
           ),
         ),
       ),
-      bottomNavigationBar: CustomBottomNavBar(currentIndex: 0),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.blueAccent,
+        onPressed: () async {
+          bool? created = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CreateQuizPage()),
+          );
+          if (created == true) _loadQuizzes();
+        },
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text("สร้างข้อสอบ", style: TextStyle(color: Colors.white)),
+      ),
+      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 1),
     );
   }
 
-  Widget _buildCourseCard(CourseModel course) {
+  Widget _buildQuizCard(QuizModel quiz) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -162,52 +208,26 @@ class _CoursepageState extends State<Coursepage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Course icon / image
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: course.imageUrl.isNotEmpty
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.network(
-                          course.imageUrl,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : const Icon(
-                        Icons.menu_book_rounded,
-                        color: Colors.grey,
-                        size: 28,
-                      ),
+              const CircleAvatar(
+                backgroundColor: Colors.blueAccent,
+                child: Icon(Icons.question_answer, color: Colors.white),
               ),
               const SizedBox(width: 12),
-              // Course info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      course.courseName,
+                      quiz.title,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 2),
                     Text(
-                      "${course.courseID} • ${course.courseNameEn}",
-                      style: TextStyle(fontSize: 13, color: Colors.grey[500]),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      "${course.credits} หน่วยกิต",
-                      style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                      "โดย: ${quiz.author} • ${quiz.createdAt.split(' ').first}",
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -215,70 +235,11 @@ class _CoursepageState extends State<Coursepage> {
             ],
           ),
           const SizedBox(height: 12),
-          // Description
           Text(
-            course.description,
-            style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+            quiz.description,
+            style: TextStyle(fontSize: 14, color: Colors.grey[800]),
           ),
-          const SizedBox(height: 12),
-          // Topics as chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: List.generate(
-                course.topics.length > 3 ? 4 : course.topics.length,
-                (index) {
-                  // สร้างกล่องตัวเลขหัวข้อที่เหลือ (+X) ถ้ามีเกิน 3
-                  if (index == 3) {
-                    return Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        "+${course.topics.length - 3}",
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    );
-                  }
-
-                  // สร้างหัวข้อปกติ
-                  return Container(
-                    margin: const EdgeInsets.only(
-                      right: 8,
-                    ), // เว้นระยะห่างด้านขวาเสมอ
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00B4FF).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      course.topics[index],
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF0091D5),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          // ปุ่มดูรายละเอียด
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -286,51 +247,21 @@ class _CoursepageState extends State<Coursepage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => DetailPage(course: course),
+                    builder: (context) => QuizTakingPage(quizId: quiz.id),
                   ),
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00B4FF),
+                backgroundColor: Colors.blueAccent,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 12),
               ),
-              child: const Text(
-                "ดูรายละเอียด",
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              ),
+              child: const Text("เริ่มทำข้อสอบ"),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label) {
-    bool isSelected = selectedFilter == label;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedFilter = label;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF00B4FF) : Colors.grey[200],
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey[700],
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 13,
-          ),
-        ),
       ),
     );
   }
