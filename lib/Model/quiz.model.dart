@@ -49,3 +49,32 @@ class QuestionModel {
     );
   }
 }
+
+class QuizAttemptModel {
+  final String attemptId;
+  final String quizId;
+  final String quizTitle;
+  final int score;
+  final int totalQuestions;
+  final String completedAt;
+
+  QuizAttemptModel({
+    required this.attemptId,
+    required this.quizId,
+    required this.quizTitle,
+    required this.score,
+    required this.totalQuestions,
+    required this.completedAt,
+  });
+
+  factory QuizAttemptModel.fromJson(Map<String, dynamic> json) {
+    return QuizAttemptModel(
+      attemptId: json['attempt_id'],
+      quizId: json['quiz_id'],
+      quizTitle: json['quiz_title'],
+      score: json['score'],
+      totalQuestions: json['total_questions'],
+      completedAt: json['completed_at'],
+    );
+  }
+}

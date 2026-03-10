@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
-import 'package:app/Model/authusermodel.dart';
+import 'package:app/Model/user.model.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -19,7 +19,7 @@ class _AuthScreenLoginState extends State<AuthScreenLogin> {
   final TextEditingController confirmPasswordController =
       TextEditingController();
 
-  AuthModel authModel = AuthModel();
+  UserModel? currentUser;
   final storage = const FlutterSecureStorage();
   bool isLoading = false;
   bool isRegistering = false;
@@ -227,7 +227,7 @@ class _AuthScreenLoginState extends State<AuthScreenLogin> {
         ),
         const SizedBox(height: 10),
         const Text(
-          "Smart Recomendation",
+          "Learnify",
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const Text("AI Powered Learning", style: TextStyle(fontSize: 18)),

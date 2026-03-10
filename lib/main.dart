@@ -1,8 +1,8 @@
 import 'package:app/AuthScreen.login.dart';
+import 'package:app/Course.dart';
 import 'package:app/QA.page.dart';
 import 'package:flutter/material.dart';
 import 'package:app/Profile.page.dart';
-import 'Course.dart';
 import 'package:app/component_/theme.dart';
 import 'package:app/LearningPath.page.dart';
 

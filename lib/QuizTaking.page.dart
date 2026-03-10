@@ -136,14 +136,10 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(
-                  context,
-                  true,
-                ); // Return true to indicate quiz finished
+                Navigator.pop(context); // ปิดแค่ Dialog เพื่อให้ดูเฉลยได้ต่อ
               },
               child: const Text(
-                "ตกลง",
+                "ดูเฉลย",
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -182,15 +178,22 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _isSubmitted ? null : _submitQuiz,
+                onPressed: _isSubmitted
+                    ? () => Navigator.pop(context, true)
+                    : _submitQuiz,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
+                  backgroundColor: _isSubmitted
+                      ? Colors.redAccent
+                      : Colors.blueAccent,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text("ส่งข้อสอบ", style: TextStyle(fontSize: 18)),
+                child: Text(
+                  _isSubmitted ? "ออกจากการฝึก" : "ส่งข้อสอบ",
+                  style: const TextStyle(fontSize: 18),
+                ),
               ),
             ),
           ),

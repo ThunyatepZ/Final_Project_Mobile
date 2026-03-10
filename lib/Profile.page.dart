@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:app/Model/user.model.dart';
+import 'package:app/Model/quiz.model.dart';
 import 'package:app/component_/buttom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -15,11 +17,10 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final storage = const FlutterSecureStorage();
-  String? username;
-  String? email;
+  UserModel? user;
   bool isLoadingProfile = true;
-  List<dynamic> myQuizzes = [];
-  List<dynamic> quizAttempts = [];
+  List<QuizModel> myQuizzes = [];
+  List<QuizAttemptModel> quizAttempts = [];
 
   @override
   void initState() {
@@ -51,19 +52,21 @@ class _ProfilePageState extends State<ProfilePage> {
     if (!mounted) return;
 
     setState(() {
-      username = jsonDecode(res.body)['username'];
-      email = jsonDecode(res.body)['email'];
+      user = UserModel.fromJson(jsonDecode(res.body));
 
       final historyData = jsonDecode(historyRes.body);
       if (historyData['status'] == 'success') {
-        quizAttempts = historyData['history'] ?? [];
+        quizAttempts = (historyData['history'] as List)
+            .map((e) => QuizAttemptModel.fromJson(e))
+            .toList();
       }
 
-      final myData = jsonDecode(quizMyRes.body);
-      if (myData['status'] == 'success') {
-        myQuizzes = myData['quizzes'] ?? [];
+      final myQuizData = jsonDecode(quizMyRes.body);
+      if (myQuizData['status'] == 'success') {
+        myQuizzes = (myQuizData['quizzes'] as List)
+            .map((e) => QuizModel.fromJson(e))
+            .toList();
       }
-
       isLoadingProfile = false;
     });
   }
@@ -72,9 +75,11 @@ class _ProfilePageState extends State<ProfilePage> {
     if (quizAttempts.isEmpty) return 0.0;
     double totalPercent = 0;
     for (var attempt in quizAttempts) {
-      int score = attempt['score'] ?? 0;
-      int total = attempt['total_questions'] ?? 1;
-      totalPercent += (score / total) * 100;
+      double score = attempt.score.toDouble();
+      double total = attempt.totalQuestions.toDouble();
+      if (total > 0) {
+        totalPercent += (score / total) * 100;
+      }
     }
     return totalPercent / quizAttempts.length;
   }
@@ -83,8 +88,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (quizAttempts.isEmpty) return 0;
     int best = 0;
     for (var attempt in quizAttempts) {
-      int score = attempt['score'] ?? 0;
-      if (score > best) best = score;
+      if (attempt.score > best) best = attempt.score;
     }
     return best;
   }
@@ -148,8 +152,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         alignment: Alignment.center,
                         child: Text(
-                          username != null && username!.isNotEmpty
-                              ? username![0].toUpperCase()
+                          (user?.username != null && user!.username.isNotEmpty)
+                              ? user!.username[0].toUpperCase()
                               : "U",
                           style: const TextStyle(
                             color: Colors.white,
@@ -164,7 +168,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              username ?? "Guest",
+                              user?.username ?? "Guest",
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -172,7 +176,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                             ),
                             Text(
-                              email ?? "no-email@example.com",
+                              user?.email ?? "no-email@example.com",
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.white.withOpacity(0.8),
@@ -184,22 +188,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const Divider(color: Colors.white24),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildStatItem("ครั้ง", quizAttempts.length.toString()),
-                      _buildStatItem(
-                        "เฉลี่ย",
-                        "${_calculateAverageScore().toStringAsFixed(0)}%",
-                      ),
-                      _buildStatItem(
-                        "สูงสุด",
-                        _calculateBestScore().toString(),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -261,7 +249,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              quiz['title'] ?? "ไม่ทราบชื่อ",
+                              quiz.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -271,12 +259,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              quiz['created_at'] != null
-                                  ? quiz['created_at']
-                                        .toString()
-                                        .split(' ')
-                                        .first
-                                  : "-",
+                              quiz.createdAt.split(' ').first,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
@@ -346,7 +329,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              "${attempt['score'] ?? 0}",
+                              "${attempt.score}",
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -354,7 +337,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                             ),
                             Text(
-                              "/ ${attempt['total_questions'] ?? 0}",
+                              "/ ${attempt.totalQuestions}",
                               style: const TextStyle(
                                 fontSize: 10,
                                 color: Colors.blueAccent,
@@ -369,7 +352,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              attempt['quiz_title'] ?? "ไม่ทราบชื่อข้อสอบ",
+                              attempt.quizTitle,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -379,15 +362,12 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              attempt['completed_at'] != null
-                                  ? attempt['completed_at']
-                                        .toString()
-                                        .split(' ')
-                                        .first
-                                  : "-",
+                              "เมื่อ: ${attempt.completedAt.split(' ').first}",
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.5),
                               ),
                             ),
                           ],

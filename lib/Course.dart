@@ -17,8 +17,8 @@ class CoursePage extends StatefulWidget {
 }
 
 class _CoursePageState extends State<CoursePage> {
-  List<QuizModel> allQuizzes = [];
-  List<QuizModel> visibleQuizzes = [];
+  List<QuizModel> _allQuizzes = [];
+  String _searchQuery = "";
   bool isPageLoading = true;
   final secureStorage = const FlutterSecureStorage();
   final TextEditingController searchController = TextEditingController();
@@ -53,10 +53,9 @@ class _CoursePageState extends State<CoursePage> {
         if (data['status'] == 'success') {
           if (mounted) {
             setState(() {
-              allQuizzes = (data['quizzes'] as List)
+              _allQuizzes = (data['quizzes'] as List)
                   .map((e) => QuizModel.fromJson(e))
                   .toList();
-              visibleQuizzes = List.from(allQuizzes);
               isPageLoading = false;
             });
           }
@@ -70,16 +69,15 @@ class _CoursePageState extends State<CoursePage> {
     if (mounted) setState(() => isPageLoading = false);
   }
 
-  void _applyQuizFilter(String query) {
-    setState(() {
-      visibleQuizzes = allQuizzes
-          .where(
-            (quiz) =>
-                quiz.title.toLowerCase().contains(query.toLowerCase()) ||
-                quiz.description.toLowerCase().contains(query.toLowerCase()),
-          )
-          .toList();
-    });
+  // ฟังก์ชันสำหรับกรองข้อมูล (ลอจิกการค้นหา)
+  List<QuizModel> get _getFilteredQuizzes {
+    if (_searchQuery.isEmpty) return _allQuizzes;
+
+    final query = _searchQuery.toLowerCase();
+    return _allQuizzes.where((quiz) {
+      return quiz.title.toLowerCase().contains(query) ||
+          quiz.description.toLowerCase().contains(query);
+    }).toList();
   }
 
   @override
@@ -121,17 +119,39 @@ class _CoursePageState extends State<CoursePage> {
                 ),
                 child: TextField(
                   controller: searchController,
-                  onChanged: _applyQuizFilter,
-                  decoration: const InputDecoration(
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
                     hintText: "ค้นหาแนวข้อสอบ...",
-                    hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-                    prefixIcon: Icon(
+                    hintStyle: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                    prefixIcon: const Icon(
                       Icons.search,
                       color: Colors.blueAccent,
                       size: 20,
                     ),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(
+                              Icons.clear,
+                              size: 20,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () {
+                              searchController.clear();
+                              setState(() {
+                                _searchQuery = "";
+                              });
+                            },
+                          )
+                        : null,
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
               ),
@@ -141,7 +161,7 @@ class _CoursePageState extends State<CoursePage> {
               Expanded(
                 child: isPageLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : allQuizzes.isEmpty
+                    : _allQuizzes.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -160,9 +180,9 @@ class _CoursePageState extends State<CoursePage> {
                         ),
                       )
                     : ListView.builder(
-                        itemCount: visibleQuizzes.length,
+                        itemCount: _getFilteredQuizzes.length,
                         itemBuilder: (context, index) {
-                          final quiz = visibleQuizzes[index];
+                          final quiz = _getFilteredQuizzes[index];
                           return _buildQuizCard(quiz);
                         },
                       ),
