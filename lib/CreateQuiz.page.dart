@@ -12,7 +12,7 @@ class CreateQuizPage extends StatefulWidget {
 }
 
 class _CreateQuizPageState extends State<CreateQuizPage> {
-  File? _selectedFile;
+  final List<File> _selectedFiles = [];
   bool _isUploading = false;
   final storage = const FlutterSecureStorage();
 
@@ -20,17 +20,18 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'txt'],
+      allowMultiple: true,
     );
 
     if (result != null) {
       setState(() {
-        _selectedFile = File(result.files.single.path!);
+        _selectedFiles.addAll(result.paths.map((path) => File(path!)).toList());
       });
     }
   }
 
   Future<void> _uploadAndGenerate() async {
-    if (_selectedFile == null) return;
+    if (_selectedFiles.isEmpty) return;
 
     setState(() => _isUploading = true);
 
@@ -45,9 +46,12 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
         Uri.parse('$url/api/v1/quiz/generate'),
       );
       request.headers['Authorization'] = 'Bearer $token';
-      request.files.add(
-        await http.MultipartFile.fromPath('files', _selectedFile!.path),
-      );
+
+      for (var file in _selectedFiles) {
+        request.files.add(
+          await http.MultipartFile.fromPath('files', file.path),
+        );
+      }
 
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
@@ -96,12 +100,33 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 32),
-              if (_selectedFile != null) ...[
-                Text(
-                  "ไฟล์ที่เลือก: ${_selectedFile!.path.split('/').last}",
-                  style: const TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
+              if (_selectedFiles.isNotEmpty) ...[
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 150),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _selectedFiles.length,
+                    itemBuilder: (context, index) {
+                      final file = _selectedFiles[index];
+                      return ListTile(
+                        leading: const Icon(
+                          Icons.file_present,
+                          color: Colors.green,
+                        ),
+                        title: Text(
+                          file.path.split('/').last,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(
+                            Icons.remove_circle_outline,
+                            color: Colors.red,
+                          ),
+                          onPressed: () =>
+                              setState(() => _selectedFiles.removeAt(index)),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -115,7 +140,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              if (_selectedFile != null)
+              if (_selectedFiles.isNotEmpty)
                 ElevatedButton(
                   onPressed: _isUploading ? null : _uploadAndGenerate,
                   style: ElevatedButton.styleFrom(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -21,7 +22,7 @@ class _CoursePageState extends State<CoursePage> {
   String _searchQuery = "";
   bool isPageLoading = true;
   final secureStorage = const FlutterSecureStorage();
-  final TextEditingController searchController = TextEditingController();
+  Timer? _debounce; // สร้าง Timer สำหรับ Debounce
 
   @override
   void initState() {
@@ -31,7 +32,7 @@ class _CoursePageState extends State<CoursePage> {
 
   @override
   void dispose() {
-    searchController.dispose();
+    _debounce?.cancel(); // อย่าลืม cancel เมื่อปิดหน้าจอ
     super.dispose();
   }
 
@@ -69,7 +70,6 @@ class _CoursePageState extends State<CoursePage> {
     if (mounted) setState(() => isPageLoading = false);
   }
 
-  // ฟังก์ชันสำหรับกรองข้อมูล (ลอจิกการค้นหา)
   List<QuizModel> get _getFilteredQuizzes {
     if (_searchQuery.isEmpty) return _allQuizzes;
 
@@ -110,49 +110,21 @@ class _CoursePageState extends State<CoursePage> {
               ),
               const SizedBox(height: 20),
 
-              // Search Bar
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: TextField(
-                  controller: searchController,
-                  onChanged: (value) {
+              // Search Bar แบบมี Debounce (เพื่อประสิทธิภาพสูงสุด)
+              TextField(
+                onChanged: (value) {
+                  // ถ้ายังพิมพ์ไม่เสร็จ (ภายใน 500ms) ให้ยกเลิก Timer เดิมแล้วเริ่มนับใหม่
+                  if (_debounce?.isActive ?? false) _debounce?.cancel();
+                  _debounce = Timer(const Duration(milliseconds: 500), () {
                     setState(() {
                       _searchQuery = value;
                     });
-                  },
-                  decoration: InputDecoration(
-                    hintText: "ค้นหาแนวข้อสอบ...",
-                    hintStyle: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14,
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.search,
-                      color: Colors.blueAccent,
-                      size: 20,
-                    ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(
-                              Icons.clear,
-                              size: 20,
-                              color: Colors.grey,
-                            ),
-                            onPressed: () {
-                              searchController.clear();
-                              setState(() {
-                                _searchQuery = "";
-                              });
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
+                  });
+                },
+                decoration: const InputDecoration(
+                  hintText: "🔍 ค้นหาแนวข้อสอบ...",
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16),
                 ),
               ),
               const SizedBox(height: 16),

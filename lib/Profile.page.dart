@@ -71,26 +71,55 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
-  double _calculateAverageScore() {
-    if (quizAttempts.isEmpty) return 0.0;
-    double totalPercent = 0;
-    for (var attempt in quizAttempts) {
-      double score = attempt.score.toDouble();
-      double total = attempt.totalQuestions.toDouble();
-      if (total > 0) {
-        totalPercent += (score / total) * 100;
-      }
-    }
-    return totalPercent / quizAttempts.length;
-  }
+  Future<void> _deleteQuiz(String quizId) async {
+    // Show a confirmation dialog (optional but safer)
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("ยืนยันการลบ"),
+        content: const Text(
+          "คุณแน่ใจหรือไม่ว่าต้องการลบข้อสอบนี้? ข้อมูลทั้งหมดรวมถึงประวัติการทำข้อสอบจะหายไป",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("ยกเลิก"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("ลบ", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
 
-  int _calculateBestScore() {
-    if (quizAttempts.isEmpty) return 0;
-    int best = 0;
-    for (var attempt in quizAttempts) {
-      if (attempt.score > best) best = attempt.score;
+    if (confirm != true) return;
+
+    final token = await storage.read(key: 'jwt_token');
+    final url = Platform.isAndroid
+        ? 'http://10.0.2.2:8000'
+        : 'http://127.0.0.1:8000';
+
+    try {
+      final res = await http.delete(
+        Uri.parse('$url/api/v1/quiz/$quizId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['status'] == 'success') {
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text("ลบข้อสอบสำเร็จ")));
+            _fetchUserProfile(); // Refresh list
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error deleting quiz: $e");
     }
-    return best;
   }
 
   @override
@@ -273,12 +302,21 @@ class _ProfilePageState extends State<ProfilePage> {
                         size: 14,
                         color: Colors.grey,
                       ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.redAccent,
+                          size: 22,
+                        ),
+                        onPressed: () => _deleteQuiz(quiz.id),
+                      ),
                     ],
                   ),
                 );
               }),
             const SizedBox(height: 24),
-
+ 
             // History Section
             Align(
               alignment: Alignment.centerLeft,

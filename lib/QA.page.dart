@@ -28,7 +28,7 @@ class _QApageState extends State<QApage> {
   final ScrollController _scrollController = ScrollController();
 
   bool _isLoading = false;
-  PlatformFile? _selectedFile;
+  List<PlatformFile> _selectedFiles = [];
 
   final List<ChatMessage> _messages = [
     ChatMessage(
@@ -43,34 +43,39 @@ class _QApageState extends State<QApage> {
       type: FileType.custom,
       allowedExtensions: ['pdf', 'txt', 'md', 'csv', 'json'],
       withData: true,
+      allowMultiple: true,
     );
 
     if (result != null && result.files.isNotEmpty) {
       setState(() {
-        _selectedFile = result.files.first;
+        _selectedFiles.addAll(result.files);
       });
     }
   }
 
   Future<void> _handleSendMessage() async {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && _selectedFiles.isEmpty) return;
 
-    final selectedFile = _selectedFile;
-    final displayMessage = selectedFile != null
-        ? "$text\n[ไฟล์แนบ: ${selectedFile.name}]"
-        : text;
+    final selectedFiles = List<PlatformFile>.from(_selectedFiles);
+    String displayMessage = text;
+    if (selectedFiles.isNotEmpty) {
+      final fileNames = selectedFiles.map((f) => f.name).join(', ');
+      displayMessage = text.isEmpty
+          ? "[ไฟล์แบบแนบ: $fileNames]"
+          : "$text\n[ไฟล์แนบ: $fileNames]";
+    }
 
     _addUserMessage(displayMessage);
     _controller.clear();
 
     setState(() {
       _isLoading = true;
-      _selectedFile = null;
+      _selectedFiles = [];
     });
     _scrollToBottom();
 
-    final answer = await _getAnswerFromAPI(text, selectedFile);
+    final answer = await _getAnswerFromAPI(text, selectedFiles);
 
     if (mounted) {
       setState(() {
@@ -93,7 +98,10 @@ class _QApageState extends State<QApage> {
     });
   }
 
-  Future<String> _getAnswerFromAPI(String question, PlatformFile? file) async {
+  Future<String> _getAnswerFromAPI(
+    String question,
+    List<PlatformFile> files,
+  ) async {
     try {
       final url = Platform.isAndroid
           ? 'http://10.0.2.2:8000'
@@ -112,18 +120,18 @@ class _QApageState extends State<QApage> {
             ..headers['Authorization'] = 'Bearer $token'
             ..fields['question'] = question;
 
-      if (file != null) {
+      for (var file in files) {
         if (file.bytes != null) {
           request.files.add(
             http.MultipartFile.fromBytes(
-              'file',
+              'files',
               file.bytes!,
               filename: file.name,
             ),
           );
         } else if (file.path != null) {
           request.files.add(
-            await http.MultipartFile.fromPath('file', file.path!),
+            await http.MultipartFile.fromPath('files', file.path!),
           );
         }
       }
@@ -188,36 +196,55 @@ class _QApageState extends State<QApage> {
     );
   }
 
-  Widget _buildSelectedFilePreview() {
-    if (_selectedFile == null) {
+  Widget _buildSelectedFilesPreview() {
+    if (_selectedFiles.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return Container(
+      constraints: const BoxConstraints(maxHeight: 120),
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.blue[50],
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.35)),
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.attach_file, color: Colors.blueAccent, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _selectedFile!.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
+      child: ListView.builder(
+        shrinkWrap: true,
+        itemCount: _selectedFiles.length,
+        itemBuilder: (context, index) {
+          final file = _selectedFiles[index];
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.attach_file,
+                  color: Colors.blueAccent,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    file.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: Colors.black87),
+                  ),
+                ),
+                InkWell(
+                  onTap: () => setState(() => _selectedFiles.removeAt(index)),
+                  child: const Icon(
+                    Icons.close,
+                    size: 16,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
             ),
-          ),
-          InkWell(
-            onTap: () => setState(() => _selectedFile = null),
-            child: const Icon(Icons.close, size: 18, color: Colors.black54),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -269,7 +296,7 @@ class _QApageState extends State<QApage> {
                 ],
               ),
             ),
-          _buildSelectedFilePreview(),
+          _buildSelectedFilesPreview(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
